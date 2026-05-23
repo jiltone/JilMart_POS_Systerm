@@ -11,8 +11,8 @@ A high-performance, full-featured **Point of Sale system** built for JilMart Sup
 
 ## 📸 Screenshots
 
-### Checkout Screen
-![JilMart POS Checkout Screen](screenshots/checkout.png)
+### Dashboad Screen
+![JilMart POS Dashboad Screen](screenshots/dashboad.png)
 
 > **3-panel layout** — Left: navigation sidebar with cashier info · Center: live cart table · Right: total, product search, quick keys, and payment buttons
 
@@ -240,18 +240,10 @@ Printer width is configurable in **Settings → Receipt → Printer Width**.
 
 ---
 
-## 📄 License
-
-MIT License — free to use, modify, and distribute.
-
----
 
 ## 👤 Author
 
-**JilMart Development Team**
 - GitHub: [@jiltone](https://github.com/jiltone)
 - Email: pannilagesachinthadilshan@gmail.com
 
----
 
-> Built with ❤️ for fast, reliable supermarket checkout operations.
