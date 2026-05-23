@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JilMart POS — Inventory</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🛒</div>
+    <div class="login-title">JilMart POS</div>
+    <div class="login-sub">Select your name to begin</div>
+    <div id="login-step-select">
+      <div id="cashier-list" class="cashier-select-list">
+        <div style="color:var(--text-4);font-size:13px;padding:20px 0">Loading cashiers…</div>
+      </div>
+    </div>
+    <div id="login-step-pin" style="display:none">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">Hi, <span id="selected-cashier-name"></span>! Enter your PIN</div>
+      <div class="pin-dots">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="pin-pad">
+        <button class="pin-key" data-val="1">1</button><button class="pin-key" data-val="2">2</button><button class="pin-key" data-val="3">3</button>
+        <button class="pin-key" data-val="4">4</button><button class="pin-key" data-val="5">5</button><button class="pin-key" data-val="6">6</button>
+        <button class="pin-key" data-val="7">7</button><button class="pin-key" data-val="8">8</button><button class="pin-key" data-val="9">9</button>
+        <button class="pin-key pin-clear" id="pin-clear">CLR</button><button class="pin-key" data-val="0">0</button><button class="pin-key pin-del" id="pin-delete">⌫</button>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <button id="back-to-select" class="btn btn-secondary w-full mt-8" style="height:36px">← Back</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout no-panel" id="app-layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛒</div>
+      <div class="brand-text"><div class="brand-name">JilMart</div><div class="brand-sub">Point of Sale</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">POS</div>
+      <a href="/"><span class="nav-icon">⊞</span><span>Checkout</span></a>
+      <div class="nav-section">Management</div>
+      <a href="/inventory" class="active"><span class="nav-icon">📦</span><span>Inventory</span></a>
+      <a href="/reports"><span class="nav-icon">📊</span><span>Reports</span></a>
+      <a href="/settings"><span class="nav-icon">⚙️</span><span>Settings</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="cashier-badge" id="logout-btn">
+        <div class="cashier-avatar cashier-avatar-display">?</div>
+        <div class="cashier-info">
+          <div class="cashier-name cashier-name-display">Not logged in</div>
+          <div class="cashier-role cashier-role-display">cashier</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="topbar">
+      <button class="topbar-toggle" id="sidebar-toggle">☰</button>
+      <div class="topbar-title">Inventory Management</div>
+      <div class="topbar-meta">
+        <span id="low-stock-badge" class="badge badge-warning" style="display:none">⚠ Low Stock</span>
+      </div>
+    </div>
+
+    <div class="page-body" style="overflow-y:auto;height:calc(100vh - 54px)">
+      <div class="page-header">
+        <div class="page-header-left">
+          <h1>Products</h1>
+          <p id="product-count-label">Loading…</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-secondary" id="btn-export-csv">📥 Export CSV</button>
+          <button class="btn btn-primary" id="btn-add-product">+ Add Product</button>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="filter-bar">
+        <input type="text" class="form-input search-box" id="inv-search" placeholder="🔍  Search by name or barcode…">
+        <select class="form-select" id="inv-category" style="min-width:140px">
+          <option value="">All Categories</option>
+        </select>
+        <select class="form-select" id="inv-stock-filter" style="min-width:130px">
+          <option value="">All Stock</option>
+          <option value="low">Low Stock</option>
+          <option value="out">Out of Stock</option>
+        </select>
+        <button class="btn btn-secondary btn-sm" id="btn-refresh-inv">↻ Refresh</button>
+      </div>
+
+      <!-- Low stock alert -->
+      <div id="inv-low-stock-alert" style="display:none" class="alert alert-warning mb-12">
+        ⚠️ <strong id="inv-low-count">0</strong> products are low on stock and need restocking.
+      </div>
+
+      <!-- Product table -->
+      <div class="card">
+        <div class="card-body" style="padding:0">
+          <div style="overflow-x:auto">
+            <table class="data-table" id="inv-table">
+              <thead>
+                <tr>
+                  <th>Barcode</th>
+                  <th>Product Name</th>
+                  <th>Category</th>
+                  <th class="text-right">Cost (LKR)</th>
+                  <th class="text-right">Retail (LKR)</th>
+                  <th>Unit</th>
+                  <th class="text-center">Stock</th>
+                  <th class="text-center">Status</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="inv-tbody">
+                <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-4)">Loading products…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Add / Edit Product Modal -->
+<div class="modal-backdrop" id="modal-product">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="product-modal-title">Add Product</div>
+      <button class="modal-close" onclick="App.closeModal('modal-product')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-product-id">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Barcode <span class="required">*</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" class="form-input w-full" id="p-barcode" placeholder="Scan or enter barcode">
+            <button class="btn btn-secondary btn-icon" id="p-gen-barcode" title="Generate">🎲</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="p-category">
+            <option value="General">General</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Bakery">Bakery</option>
+            <option value="Household">Household</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Produce">Produce</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Bags">Bags</option>
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Product Name <span class="required">*</span></label>
+          <input type="text" class="form-input" id="p-name" placeholder="Enter full product name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost Price (LKR) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="p-cost" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Retail Price (LKR) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="p-retail" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Quantity</label>
+          <input type="number" class="form-input" id="p-stock" placeholder="0" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <select class="form-select" id="p-unit">
+            <option value="pcs">pcs</option><option value="kg">kg</option><option value="g">g</option>
+            <option value="L">L</option><option value="ml">ml</option><option value="pack">pack</option>
+            <option value="bag">bag</option><option value="bottle">bottle</option>
+            <option value="can">can</option><option value="loaf">loaf</option><option value="bar">bar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Low Stock Threshold</label>
+          <input type="number" class="form-input" id="p-threshold" placeholder="10" min="0" value="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Margin</label>
+          <div class="form-input" id="p-margin-display" style="background:var(--surface2);display:flex;align-items:center;font-weight:700;color:var(--primary-dark)">—</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-product')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-product">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Stock Adjustment Modal -->
+<div class="modal-backdrop" id="modal-stock">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">📦 Adjust Stock</div>
+      <button class="modal-close" onclick="App.closeModal('modal-stock')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="font-weight:600;margin-bottom:14px;font-size:15px" id="stock-product-name"></div>
+      <div class="form-group mb-12">
+        <label class="form-label">Current Stock</label>
+        <div class="form-input" id="stock-current" style="background:var(--surface2);display:flex;align-items:center"></div>
+      </div>
+      <div class="form-group mb-12">
+        <label class="form-label">Adjustment (+/−)</label>
+        <input type="number" class="form-input" id="stock-adj" placeholder="e.g. 50 or -10">
+        <div class="form-hint">Use positive to add stock, negative to reduce</div>
+      </div>
+      <input type="hidden" id="stock-product-id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-stock')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-stock">Update Stock</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/inventory.js"></script>
+</body>
+</html>

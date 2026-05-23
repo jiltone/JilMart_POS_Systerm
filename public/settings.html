@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JilMart POS — Settings</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+
+<!-- Login overlay -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🛒</div>
+    <div class="login-title">JilMart POS</div>
+    <div class="login-sub">Select your name to begin</div>
+    <div id="login-step-select">
+      <div id="cashier-list" class="cashier-select-list">
+        <div style="color:var(--text-4);font-size:13px;padding:20px 0">Loading cashiers…</div>
+      </div>
+    </div>
+    <div id="login-step-pin" style="display:none">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">Hi, <span id="selected-cashier-name"></span>! Enter your PIN</div>
+      <div class="pin-dots">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="pin-pad">
+        <button class="pin-key" data-val="1">1</button><button class="pin-key" data-val="2">2</button><button class="pin-key" data-val="3">3</button>
+        <button class="pin-key" data-val="4">4</button><button class="pin-key" data-val="5">5</button><button class="pin-key" data-val="6">6</button>
+        <button class="pin-key" data-val="7">7</button><button class="pin-key" data-val="8">8</button><button class="pin-key" data-val="9">9</button>
+        <button class="pin-key pin-clear" id="pin-clear">CLR</button><button class="pin-key" data-val="0">0</button><button class="pin-key pin-del" id="pin-delete">⌫</button>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <button id="back-to-select" class="btn btn-secondary w-full mt-8" style="height:36px">← Back</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout no-panel" id="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛒</div>
+      <div class="brand-text"><div class="brand-name">JilMart</div><div class="brand-sub">Point of Sale</div></div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">POS</div>
+      <a href="/"><span class="nav-icon">⊞</span><span>Checkout</span></a>
+      <div class="nav-section">Management</div>
+      <a href="/inventory"><span class="nav-icon">📦</span><span>Inventory</span></a>
+      <a href="/reports"><span class="nav-icon">📊</span><span>Reports</span></a>
+      <a href="/settings" class="active"><span class="nav-icon">⚙️</span><span>Settings</span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="cashier-badge" id="logout-btn">
+        <div class="cashier-avatar cashier-avatar-display">?</div>
+        <div class="cashier-info">
+          <div class="cashier-name cashier-name-display">Not logged in</div>
+          <div class="cashier-role cashier-role-display">cashier</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <div class="topbar">
+      <button class="topbar-toggle" id="sidebar-toggle">☰</button>
+      <div class="topbar-title">Settings</div>
+    </div>
+
+    <div class="page-body" style="overflow-y:auto;height:calc(100vh - 54px);max-width:820px">
+
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="store">🏪 Store</button>
+        <button class="tab-btn" data-tab="cashiers">👤 Cashiers</button>
+        <button class="tab-btn" data-tab="quickkeys">⚡ Quick Keys</button>
+        <button class="tab-btn" data-tab="receipt">🧾 Receipt</button>
+      </div>
+
+      <!-- Store Settings -->
+      <div class="tab-panel active" id="tab-store">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Store Information</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label class="form-label">Store Name</label>
+                <input type="text" class="form-input" id="s-store-name" placeholder="JilMart Supermarket">
+              </div>
+              <div class="form-group span-2">
+                <label class="form-label">Store Address</label>
+                <input type="text" class="form-input" id="s-store-address" placeholder="123 Main Street, Colombo">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Phone Number</label>
+                <input type="text" class="form-input" id="s-store-phone" placeholder="+94 11 234 5678">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" class="form-input" id="s-store-email" placeholder="info@jilmart.lk">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Currency Symbol</label>
+                <input type="text" class="form-input" id="s-currency" value="LKR" placeholder="LKR">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Tax Rate (%)</label>
+                <input type="number" class="form-input" id="s-tax-rate" value="0" min="0" max="100" step="0.1">
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <button class="btn btn-primary" id="btn-save-store">Save Store Settings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cashier Management -->
+      <div class="tab-panel" id="tab-cashiers">
+        <div class="page-header" style="margin-bottom:14px">
+          <div class="page-header-left"><h1 style="font-size:16px">Cashiers</h1></div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary btn-sm" id="btn-add-cashier">+ Add Cashier</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-body" style="padding:0">
+            <table class="data-table" id="cashier-table">
+              <thead><tr>
+                <th>Name</th><th>Username</th><th>Role</th><th class="text-center">Status</th><th class="text-center">Actions</th>
+              </tr></thead>
+              <tbody id="cashier-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-4)">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Keys -->
+      <div class="tab-panel" id="tab-quickkeys">
+        <div class="page-header" style="margin-bottom:14px">
+          <div class="page-header-left">
+            <h1 style="font-size:16px">Quick Keys</h1>
+            <p style="font-size:12px;color:var(--text-3)">Quick keys appear on the checkout screen for fast item entry</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary btn-sm" id="btn-add-qk">+ Add Key</button>
+            <button class="btn btn-primary btn-sm" id="btn-save-qk">Save</button>
+          </div>
+        </div>
+        <div id="qk-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px"></div>
+      </div>
+
+      <!-- Receipt settings -->
+      <div class="tab-panel" id="tab-receipt">
+        <div class="card">
+          <div class="card-header"><div class="card-title">Receipt Configuration</div></div>
+          <div class="card-body">
+            <div class="form-grid">
+              <div class="form-group span-2">
+                <label class="form-label">Receipt Footer Message</label>
+                <textarea class="form-input" id="s-receipt-footer" rows="3" style="height:auto;padding:8px"
+                          placeholder="Thank you for shopping at JilMart!"></textarea>
+                <div class="form-hint">Appears at the bottom of every receipt. Use line breaks for multiple lines.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Printer Width (chars)</label>
+                <select class="form-select" id="s-printer-width">
+                  <option value="32">32 chars (57mm)</option>
+                  <option value="48" selected>48 chars (80mm)</option>
+                  <option value="64">64 chars (wide)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Low Stock Alerts</label>
+                <select class="form-select" id="s-low-stock-alert">
+                  <option value="1">Enabled</option>
+                  <option value="0">Disabled</option>
+                </select>
+              </div>
+            </div>
+            <div style="margin-top:16px">
+              <button class="btn btn-primary" id="btn-save-receipt">Save Receipt Settings</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Receipt preview -->
+        <div class="card mt-16">
+          <div class="card-header"><div class="card-title">Receipt Preview</div></div>
+          <div class="card-body">
+            <pre id="receipt-preview" style="font-family:'Courier New',monospace;font-size:12px;background:var(--surface2);padding:16px;border-radius:8px;line-height:1.7;white-space:pre-wrap;overflow-x:auto"></pre>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- Cashier Modal -->
+<div class="modal-backdrop" id="modal-cashier">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title" id="cashier-modal-title">Add Cashier</div>
+      <button class="modal-close" onclick="App.closeModal('modal-cashier')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="cashier-edit-id">
+      <div class="form-group mb-12">
+        <label class="form-label">Full Name <span class="required">*</span></label>
+        <input type="text" class="form-input" id="c-name" placeholder="e.g. Priya Perera">
+      </div>
+      <div class="form-group mb-12">
+        <label class="form-label">Username <span class="required">*</span></label>
+        <input type="text" class="form-input" id="c-username" placeholder="e.g. priya">
+      </div>
+      <div class="form-group mb-12">
+        <label class="form-label">PIN <span class="required">*</span></label>
+        <input type="password" class="form-input" id="c-pin" placeholder="4–6 digit PIN" maxlength="6">
+      </div>
+      <div class="form-group mb-12">
+        <label class="form-label">Role</label>
+        <select class="form-select" id="c-role">
+          <option value="cashier">Cashier</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="c-active">
+          <option value="1">Active</option>
+          <option value="0">Inactive</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-cashier')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-cashier">Save</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/app.js"></script>
+<script src="/js/settings.js"></script>
+</body>
+</html>

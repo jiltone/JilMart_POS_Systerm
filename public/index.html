@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JilMart POS — Checkout</title>
+  <link rel="stylesheet" href="/css/main.css">
+  <style>
+    .app-layout { grid-template-rows: auto 1fr; }
+    .checkout-center { height: calc(100vh - 54px); }
+  </style>
+</head>
+<body>
+
+<!-- ── Login Overlay ──────────────────────────────────────────────────────── -->
+<div id="login-overlay" class="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">🛒</div>
+    <div class="login-title">JilMart POS</div>
+    <div class="login-sub">Select your name to begin</div>
+
+    <!-- Step 1: Select cashier -->
+    <div id="login-step-select">
+      <div id="cashier-list" class="cashier-select-list">
+        <div style="color:var(--text-4);font-size:13px;padding:20px 0">Loading cashiers…</div>
+      </div>
+    </div>
+
+    <!-- Step 2: Enter PIN -->
+    <div id="login-step-pin" style="display:none">
+      <div style="font-size:14px;font-weight:600;margin-bottom:12px">
+        Hi, <span id="selected-cashier-name"></span>! Enter your PIN
+      </div>
+      <div class="pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div class="pin-pad">
+        <button class="pin-key" data-val="1">1</button>
+        <button class="pin-key" data-val="2">2</button>
+        <button class="pin-key" data-val="3">3</button>
+        <button class="pin-key" data-val="4">4</button>
+        <button class="pin-key" data-val="5">5</button>
+        <button class="pin-key" data-val="6">6</button>
+        <button class="pin-key" data-val="7">7</button>
+        <button class="pin-key" data-val="8">8</button>
+        <button class="pin-key" data-val="9">9</button>
+        <button class="pin-key pin-clear" id="pin-clear">CLR</button>
+        <button class="pin-key" data-val="0">0</button>
+        <button class="pin-key pin-del" id="pin-delete">⌫</button>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <button id="back-to-select" class="btn btn-secondary w-full mt-8" style="height:36px">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── App Layout ─────────────────────────────────────────────────────────── -->
+<div class="app-layout" id="app-layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🛒</div>
+      <div class="brand-text">
+        <div class="brand-name">JilMart</div>
+        <div class="brand-sub">Point of Sale</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">POS</div>
+      <a href="/" class="active">
+        <span class="nav-icon">⊞</span>
+        <span>Checkout</span>
+      </a>
+      <div class="nav-section">Management</div>
+      <a href="/inventory">
+        <span class="nav-icon">📦</span>
+        <span>Inventory</span>
+      </a>
+      <a href="/reports">
+        <span class="nav-icon">📊</span>
+        <span>Reports</span>
+      </a>
+      <a href="/settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Settings</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="cashier-badge" id="logout-btn" title="Click to logout">
+        <div class="cashier-avatar cashier-avatar-display">?</div>
+        <div class="cashier-info">
+          <div class="cashier-name cashier-name-display">Not logged in</div>
+          <div class="cashier-role cashier-role-display">cashier</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main checkout area -->
+  <main class="main-content">
+    <!-- Top bar -->
+    <div class="topbar">
+      <button class="topbar-toggle" id="sidebar-toggle" title="Toggle sidebar (F1)">☰</button>
+      <div class="topbar-title">New Transaction</div>
+      <div class="topbar-meta">
+        <span class="receipt-no" id="current-receipt-no">RCP---------</span>
+        <span class="topbar-time" id="clock"></span>
+      </div>
+    </div>
+
+    <!-- Low stock alert -->
+    <div id="low-stock-banner" class="low-stock-banner" style="display:none">
+      ⚠️ <strong id="low-stock-count">0</strong> products are low on stock.
+      <a href="/inventory?filter=lowstock">View inventory →</a>
+    </div>
+
+    <!-- Checkout center -->
+    <div class="checkout-center">
+      <div class="cart-wrap" id="cart-wrap">
+
+        <!-- Empty state -->
+        <div class="empty-cart" id="empty-cart">
+          <div class="empty-cart-icon">🛒</div>
+          <h3>Cart is empty</h3>
+          <p>Scan a barcode or search for products to add items</p>
+          <div class="shortcut-hints">
+            <span><span class="kbd">F2</span> Add Product</span>
+            <span><span class="kbd">F3</span> Search</span>
+            <span><span class="kbd">F4</span> Cash Pay</span>
+            <span><span class="kbd">F5</span> Card Pay</span>
+            <span><span class="kbd">Del</span> Clear Cart</span>
+          </div>
+        </div>
+
+        <!-- Cart table -->
+        <table class="cart-table" id="cart-table" style="display:none">
+          <thead>
+            <tr>
+              <th class="col-num">#</th>
+              <th class="col-name">Product</th>
+              <th class="col-sku">Barcode</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-price">Unit Price</th>
+              <th class="col-disc">Disc %</th>
+              <th class="col-total">Total</th>
+              <th class="col-action"></th>
+            </tr>
+          </thead>
+          <tbody id="cart-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Cart footer -->
+      <div class="cart-footer">
+        <div class="cart-footer-stats">
+          <span>Items: <strong id="footer-items">0</strong></span>
+          <span>Units: <strong id="footer-units">0</strong></span>
+          <span>Subtotal: <strong id="footer-subtotal">LKR 0.00</strong></span>
+        </div>
+        <div class="cart-footer-actions">
+          <button class="btn-hold" id="btn-hold" title="Put on hold">⏸ Hold</button>
+          <button class="btn-clear" id="btn-clear-cart" title="Clear cart (Del)">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Right action panel -->
+  <aside class="action-panel">
+
+    <!-- Total display -->
+    <div class="total-display">
+      <div class="total-label">Total Due</div>
+      <span class="total-amount" id="total-due">LKR 0.00</span>
+      <div class="total-rows">
+        <div class="total-row">
+          <span>Subtotal</span>
+          <strong id="disp-subtotal">LKR 0.00</strong>
+        </div>
+        <div class="total-row" id="disp-discount-row" style="display:none">
+          <span>Discount</span>
+          <strong id="disp-discount" style="color:#F87171">- LKR 0.00</strong>
+        </div>
+      </div>
+      <div class="discount-row">
+        <label>Global Discount</label>
+        <input type="number" class="discount-input" id="global-discount" min="0" max="100" value="0" placeholder="0">
+        <span class="discount-suffix">%</span>
+      </div>
+    </div>
+
+    <!-- Product search -->
+    <div class="search-section">
+      <div class="search-input-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" id="search-input"
+               placeholder="Scan barcode or type to search…" autocomplete="off">
+        <span class="search-kbd">F3</span>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+
+    <!-- Quick keys -->
+    <div class="quick-keys-section">
+      <div class="qk-header">
+        <span>Quick Keys</span>
+        <button class="btn-qk-edit" id="btn-qk-edit">✏️ Edit</button>
+      </div>
+      <div class="quick-keys-grid" id="quick-keys-grid">
+        <div style="grid-column:1/-1;text-align:center;color:var(--text-4);font-size:12px;padding:12px">Loading…</div>
+      </div>
+    </div>
+
+    <!-- Payment buttons -->
+    <div class="payment-section">
+      <button class="btn-pay cash"   id="btn-cash"   title="Cash payment (F4)">
+        <span class="pay-icon">💵</span><span>Cash</span>
+      </button>
+      <button class="btn-pay card"   id="btn-card"   title="Card payment (F5)">
+        <span class="pay-icon">💳</span><span>Card</span>
+      </button>
+      <button class="btn-pay mobile" id="btn-mobile" title="Mobile pay (F6)">
+        <span class="pay-icon">📱</span><span>Mobile</span>
+      </button>
+      <button class="btn-pay split"  id="btn-split"  title="Split payment (F7)">
+        <span class="pay-icon">⚡</span><span>Split</span>
+      </button>
+    </div>
+  </aside>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════════
+     MODALS
+     ════════════════════════════════════════════════════════════════════════ -->
+
+<!-- Payment: Cash -->
+<div class="modal-backdrop" id="modal-cash">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">💵 Cash Payment</div>
+      <button class="modal-close" onclick="App.closeModal('modal-cash')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="payment-due">
+        <div class="payment-due-label">Total Due</div>
+        <div class="payment-due-amount" id="cash-due">LKR 0.00</div>
+      </div>
+      <div class="form-group mb-12">
+        <label class="form-label">Cash Tendered</label>
+        <input type="number" class="form-input" id="cash-tendered" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="quick-amounts" id="cash-quick-amounts"></div>
+      <div class="change-display" id="change-display">
+        <div class="change-label">Change</div>
+        <div class="change-amount" id="change-amount">LKR 0.00</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-cash')">Cancel</button>
+      <button class="btn btn-primary btn-lg" id="btn-process-cash">✔ Process Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment: Card -->
+<div class="modal-backdrop" id="modal-card">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">💳 Card Payment</div>
+      <button class="modal-close" onclick="App.closeModal('modal-card')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="payment-due">
+        <div class="payment-due-label">Total Due</div>
+        <div class="payment-due-amount" id="card-due">LKR 0.00</div>
+      </div>
+      <div class="alert alert-info mt-12">
+        <span>💳</span>
+        <span>Present card to the terminal and confirm the transaction there.</span>
+      </div>
+      <div class="form-group mt-12">
+        <label class="form-label">Reference / Approval Code (optional)</label>
+        <input type="text" class="form-input" id="card-ref" placeholder="e.g. AUTH-123456">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-card')">Cancel</button>
+      <button class="btn btn-primary btn-lg" id="btn-process-card">✔ Confirm Card Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment: Mobile -->
+<div class="modal-backdrop" id="modal-mobile">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">📱 Mobile Payment</div>
+      <button class="modal-close" onclick="App.closeModal('modal-mobile')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="payment-due">
+        <div class="payment-due-label">Total Due</div>
+        <div class="payment-due-amount" id="mobile-due">LKR 0.00</div>
+      </div>
+      <div class="alert alert-success mt-12">
+        <span>📱</span>
+        <span>Customer should complete the payment via their mobile app. Confirm once received.</span>
+      </div>
+      <div class="form-group mt-12">
+        <label class="form-label">Reference Number (optional)</label>
+        <input type="text" class="form-input" id="mobile-ref" placeholder="e.g. TXN-789012">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-mobile')">Cancel</button>
+      <button class="btn btn-primary btn-lg" id="btn-process-mobile">✔ Confirm Mobile Pay</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment: Split -->
+<div class="modal-backdrop" id="modal-split">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div class="modal-title">⚡ Split Payment</div>
+      <button class="modal-close" onclick="App.closeModal('modal-split')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="payment-due">
+        <div class="payment-due-label">Total Due</div>
+        <div class="payment-due-amount" id="split-due">LKR 0.00</div>
+      </div>
+      <div class="split-row mt-12">
+        <div class="form-group">
+          <label class="form-label">💵 Cash Amount</label>
+          <input type="number" class="form-input" id="split-cash" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">💳 Card Amount</label>
+          <input type="number" class="form-input" id="split-card" placeholder="0.00" min="0" step="0.01">
+        </div>
+      </div>
+      <div class="split-row">
+        <div class="form-group">
+          <label class="form-label">📱 Mobile Amount</label>
+          <input type="number" class="form-input" id="split-mobile" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Remaining</label>
+          <div class="form-input" id="split-remaining" style="display:flex;align-items:center;background:var(--surface2);font-weight:700">LKR 0.00</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-split')">Cancel</button>
+      <button class="btn btn-primary btn-lg" id="btn-process-split">✔ Process Split Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Receipt modal -->
+<div class="modal-backdrop" id="modal-receipt">
+  <div class="modal modal-md">
+    <div class="modal-header">
+      <div class="modal-title">🧾 Receipt</div>
+      <button class="modal-close" id="btn-close-receipt">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="receipt-content" class="receipt-paper"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="btn-close-receipt2">Close</button>
+      <button class="btn btn-outline-primary" onclick="window.print()">🖨️ Print</button>
+      <button class="btn btn-primary" id="btn-new-sale">✚ New Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Product modal (F2) -->
+<div class="modal-backdrop" id="modal-add-product">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">📦 Add New Product</div>
+      <button class="modal-close" onclick="App.closeModal('modal-add-product')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="add-product-form">
+        <div class="form-group">
+          <label class="form-label">Barcode <span class="required">*</span></label>
+          <div style="display:flex;gap:6px">
+            <input type="text" class="form-input w-full" id="np-barcode" placeholder="Scan or enter barcode">
+            <button class="btn btn-secondary" id="btn-gen-barcode" title="Generate barcode">🎲</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-select" id="np-category">
+            <option value="General">General</option>
+            <option value="Groceries">Groceries</option>
+            <option value="Beverages">Beverages</option>
+            <option value="Dairy">Dairy</option>
+            <option value="Bakery">Bakery</option>
+            <option value="Household">Household</option>
+            <option value="Personal Care">Personal Care</option>
+            <option value="Produce">Produce</option>
+            <option value="Snacks">Snacks</option>
+            <option value="Bags">Bags</option>
+          </select>
+        </div>
+        <div class="form-group span-2">
+          <label class="form-label">Product Name <span class="required">*</span></label>
+          <input type="text" class="form-input" id="np-name" placeholder="Enter product name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cost Price (LKR) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="np-cost" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Retail Price (LKR) <span class="required">*</span></label>
+          <input type="number" class="form-input" id="np-retail" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stock Quantity</label>
+          <input type="number" class="form-input" id="np-stock" placeholder="0" min="0" value="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Unit</label>
+          <select class="form-select" id="np-unit">
+            <option value="pcs">pcs</option>
+            <option value="kg">kg</option>
+            <option value="g">g</option>
+            <option value="L">L</option>
+            <option value="ml">ml</option>
+            <option value="pack">pack</option>
+            <option value="bag">bag</option>
+            <option value="bottle">bottle</option>
+            <option value="can">can</option>
+            <option value="loaf">loaf</option>
+            <option value="bar">bar</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Low Stock Threshold</label>
+          <input type="number" class="form-input" id="np-threshold" placeholder="10" min="0" value="10">
+        </div>
+        <div class="form-group" id="add-to-cart-check-wrap">
+          <label class="form-label" style="flex-direction:row;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="np-add-to-cart" checked> Add to cart immediately
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-add-product')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-product">Save Product</button>
+    </div>
+  </div>
+</div>
+
+<!-- Quick Keys Edit modal -->
+<div class="modal-backdrop" id="modal-qk-edit">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">⚡ Edit Quick Keys</div>
+      <button class="modal-close" onclick="App.closeModal('modal-qk-edit')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="qk-editor-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="App.closeModal('modal-qk-edit')">Cancel</button>
+      <button class="btn btn-primary" id="btn-save-qk">Save Quick Keys</button>
+    </div>
+  </div>
+</div>
+
+<!-- Print area -->
+<div class="print-only" id="print-area"></div>
+
+<script src="/js/app.js"></script>
+<script src="/js/checkout.js"></script>
+</body>
+</html>
